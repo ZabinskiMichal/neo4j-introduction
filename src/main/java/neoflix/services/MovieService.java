@@ -43,13 +43,32 @@ public class MovieService {
      * @returns {Promise<Record<string, any>[]>}
      */
     // tag::all[]
-    public List<Map<String,Object>> all(Params params, String userId) {
-        // TODO: Open an Session
-        // TODO: Execute a query in a new Read Transaction
-        // TODO: Get a list of Movies from the Result
-        // TODO: Close the session
 
-        return AppUtils.process(popular, params);
+    public List<Map<String,Object>> all(Params params, String userId) {
+        // Open a new session
+        try (var session = this.driver.session()) {
+            // Execute a query in a new Read Transaction
+            var movies = session.executeRead(tx -> {
+                // Retrieve a list of movies with the
+                // favorite flag appened to the movie's properties
+                Params.Sort sort = params.sort(Params.Sort.title);
+                String query = String.format("""
+                MATCH (m:Movie)
+                WHERE m.`%s` IS NOT NULL
+                RETURN m {
+                  .*
+                } AS movie
+                ORDER BY m.`%s` %s
+                SKIP $skip
+                LIMIT $limit
+                """, sort, sort, params.order());
+                var res= tx.run(query, Values.parameters( "skip", params.skip(), "limit", params.limit()));
+                // Get a list of Movies from the Result
+                return res.list(row -> row.get("movie").asMap());
+            });
+
+            return movies;
+        }
     }
     // end::all[]
 
