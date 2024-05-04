@@ -48,6 +48,7 @@ public class AppUtils {
         // TODO: Create and assign an instance of the driver here
         return null;
     }
+
     // end::initDriver[]
 
     static int getServerPort() {
